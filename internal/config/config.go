@@ -464,7 +464,7 @@ func (envParser) Parse(cfg *Config) error {
 			cfg.RetryTimeout = n
 		}
 	}
-	if v := os.Getenv("GLASSBOX_TELEMETRY"); v != "" {
+	if v := os.Getenv("GLASSBOX_TELEMETRY_ENABLED"); v != "" {
 		if b, err := strconv.ParseBool(v); err == nil {
 			cfg.TelemetryEnabled = b
 		}

@@ -763,6 +763,29 @@ func TestParseTOML_InvalidTelemetrySampleRate(t *testing.T) {
 
 // ---- DefaultConfig mirrors defaultConfig ------------------------------------
 
+func TestEnvParser_TelemetryEnabledUsesDistinctEnvVar(t *testing.T) {
+	orig := os.Getenv("GLASSBOX_TELEMETRY_ENABLED")
+	origTel := os.Getenv("GLASSBOX_TELEMETRY")
+	defer func() {
+		os.Setenv("GLASSBOX_TELEMETRY_ENABLED", orig)
+		os.Setenv("GLASSBOX_TELEMETRY", origTel)
+	}()
+
+	os.Setenv("GLASSBOX_TELEMETRY_ENABLED", "true")
+	os.Unsetenv("GLASSBOX_TELEMETRY")
+
+	cfg := &Config{}
+	if err := (envParser{}).Parse(cfg); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !cfg.TelemetryEnabled {
+		t.Error("expected TelemetryEnabled=true from GLASSBOX_TELEMETRY_ENABLED")
+	}
+	if cfg.Telemetry {
+		t.Error("expected Telemetry=false when only GLASSBOX_TELEMETRY_ENABLED is set")
+	}
+}
+
 func TestDefaultConfig_MirrorsInternalDefaults(t *testing.T) {
 	got := DefaultConfig()
 	if !reflect.DeepEqual(*got, *defaultConfig) {

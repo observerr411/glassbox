@@ -51,7 +51,7 @@ type FileInfo struct {
 
 // GetCacheDir returns the cache directory path (creates if not exists)
 func (m *Manager) GetCacheDir() (string, error) {
-	if err := os.MkdirAll(m.cacheDir, 0755); err != nil {
+	if err := os.MkdirAll(m.cacheDir, 0700); err != nil {
 		return "", fmt.Errorf("failed to create cache directory: %w", err)
 	}
 	return m.cacheDir, nil

@@ -361,8 +361,7 @@ type limitedBuffer struct {
 
 func (lb *limitedBuffer) Write(p []byte) (n int, err error) {
 	if lb.Len()+len(p) > lb.limit {
-		// Buffer would exceed limit, discard the data
-		return len(p), nil
+		return 0, fmt.Errorf("simulator output exceeded %d-byte limit", lb.limit)
 	}
 	return lb.Buffer.Write(p)
 }

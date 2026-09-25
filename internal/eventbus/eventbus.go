@@ -84,7 +84,9 @@ func (b *EventBus) Emit(topic string, payload any) {
 	b.mu.RUnlock()
 
 	for _, h := range snapshot {
-		h(payload)
+		if h != nil {
+			h(payload)
+		}
 	}
 }
 
