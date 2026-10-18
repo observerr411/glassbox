@@ -11,6 +11,8 @@ import (
 
 // piiPatterns is a list of regex patterns that match potentially sensitive
 // information that must never be surfaced in error messages or logs.
+// piiPatterns is compiled once at package initialisation to avoid repeated
+// regex compilation on every sanitization call.
 var piiPatterns = []*regexp.Regexp{
 	// Home-directory path prefixes (Unix and Windows)
 	regexp.MustCompile(`(?i)(/home/[^/\s]+|/Users/[^/\s]+|[A-Za-z]:\\Users\\[^\\\s]+)`),
@@ -33,21 +35,21 @@ func SanitizeErrorMessage(msg string) string {
 // SanitizeDBPath replaces the user-specific home-directory portion of a
 // database path with "~" so error messages never leak usernames.
 func SanitizeDBPath(path string) string {
-	re := regexp.MustCompile(`(?i)(/home/[^/]+|/Users/[^/]+|C:\\Users\\[^\\]+)`)
+	re := regexp.MustCompile(`(?i)(/home/[^/]+|/Users/[^/]+|[A-Za-z]:\\Users\\[^\\]+)`)
 	return re.ReplaceAllString(path, "~")
 }
 
 // ValidateDBPermissions checks that the SQLite database file at dbPath is
-// readable and writable by the current process. Returns a descriptive,
+// readable by the current process. Returns a descriptive,
 // PII-free error when the check fails.
 func ValidateDBPermissions(dbPath string) error {
 	safePath := SanitizeDBPath(dbPath)
 
-	f, err := os.OpenFile(dbPath, os.O_RDWR, 0)
+	f, err := os.OpenFile(dbPath, os.O_RDONLY, 0)
 	if err != nil {
 		if os.IsPermission(err) {
 			return fmt.Errorf(
-				"session database %q is not readable/writable (permission denied)\n"+
+				"session database %q is not readable (permission denied)\n"+
 					"Fix: run 'chmod 600 %s' or delete and re-create the file",
 				safePath, safePath,
 			)

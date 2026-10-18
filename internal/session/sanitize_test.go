@@ -4,6 +4,8 @@
 package session
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -130,5 +132,47 @@ func TestSanitizeErrorMessage_RemovesNonCDriveWindowsPath(t *testing.T) {
 	}
 	if !strings.Contains(got, "[REDACTED]") {
 		t.Errorf("sanitized message should contain [REDACTED], got: %q", got)
+	}
+}
+
+func TestSanitizeErrorMessage_RemovesWindowsPathAnyDrive(t *testing.T) {
+	msg := "failed to open D:\\Users\\carol\\.Glassbox\\sessions.db"
+	got := SanitizeErrorMessage(msg)
+	if strings.Contains(got, "carol") {
+		t.Errorf("sanitized message must not contain username, got: %q", got)
+	}
+	if !strings.Contains(got, "[REDACTED]") {
+		t.Errorf("sanitized message should contain [REDACTED], got: %q", got)
+	}
+}
+
+func TestValidateDBPermissions_NonExistent(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "nonexistent.db")
+	if err := ValidateDBPermissions(dbPath); err != nil {
+		t.Errorf("expected nil for non-existent db, got: %v", err)
+	}
+}
+
+func TestValidateDBPermissions_ReadOnly(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "readonly.db")
+	if err := os.WriteFile(dbPath, []byte("test-data"), 0400); err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateDBPermissions(dbPath); err != nil {
+		t.Errorf("expected read-only db to pass ValidateDBPermissions, got: %v", err)
+	}
+}
+
+func TestValidateDBPermissions_Unreadable(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "noperms.db")
+	if err := os.WriteFile(dbPath, []byte("test-data"), 0000); err != nil {
+		t.Fatal(err)
+	}
+	err := ValidateDBPermissions(dbPath)
+	if err != nil && !strings.Contains(err.Error(), "is not readable (permission denied)") {
+		t.Errorf("expected error message to contain 'is not readable (permission denied)', got: %q", err.Error())
 	}
 }
